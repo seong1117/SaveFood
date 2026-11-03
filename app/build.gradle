@@ -1,0 +1,62 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.savefood.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.savefood.app"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true   // SettingsFragment 에서 BuildConfig.VERSION_NAME 사용
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // UI
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    // Firebase (Auth + Firestore)
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+
+    // CameraX
+    def camerax_version = '1.3.4'
+    implementation "androidx.camera:camera-core:${camerax_version}"
+    implementation "androidx.camera:camera-camera2:${camerax_version}"
+    implementation "androidx.camera:camera-lifecycle:${camerax_version}"
+    implementation "androidx.camera:camera-view:${camerax_version}"
+    implementation 'com.google.guava:guava:31.1-android'
+
+    // ML Kit (한국어 OCR)
+    implementation 'com.google.mlkit:text-recognition-korean:16.0.0'
+}
+
+// google-services.json 이 있을 때만 Firebase 플러그인 적용
+// (없어도 빌드·실행은 되며, 로그인은 '둘러보기(게스트)'로 진입)
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+}
