@@ -29,7 +29,8 @@ app/src/main/java/com/savefood/app/
 ├─ model/     FoodItem, Leftover, Recipe
 ├─ data/      FoodRepository  ← 지금은 더미 데이터. Firestore 로 교체할 곳
 ├─ ui/home/   HomeFragment, FoodMenuBottomSheet, LeftoverBottomSheet, 어댑터
-├─ ui/scan/   ScanFragment (CameraX + ML Kit OCR + 등록 폼)
+├─ ui/scan/   ScanFragment(식재료 사진·가격표·영수증 + 등록 폼), CameraController(CameraX),
+│             FoodClassifier(식재료 분류), PriceTagParser(가격표 품명), ReceiptParser(영수증 파싱), FoodCatalog(품목 기본값)
 ├─ ui/recipe/ RecipeFragment, RecipeDetailActivity
 ├─ ui/settings/ SettingsFragment (계정·로그아웃)
 ├─ util/      UiUtils
@@ -48,7 +49,7 @@ app/src/main/java/com/savefood/app/
 | 로그인/회원가입/로그아웃 | 구현 | 비밀번호 변경, 소셜 로그인(선택) |
 | 홈 · 식품/남은 요리 메뉴 | UI 완료 (더미 데이터) | 수량·기한 수정 다이얼로그, 소비/폐기 이력 저장 |
 | 데이터 저장 | **미구현** | `FoodRepository` → Firestore (`users/{uid}/foods`, `leftovers`) |
-| 스캔 · OCR | 기본 동작 | 인식 정확도 개선, 바코드, 영수증 일괄 등록, 권장 기한 자동 설정 |
+| 스캔 · OCR | 기본 동작 | 포장 없는 식재료 사진 등록, 가격표 품명 인식, 영수증 파싱(품명·수량) 일괄 등록, 권장 기한 자동 설정 |
 | 레시피 추천 | UI 완료 (고정 4개) | 보유/임박 재료 기반 추천 로직, 필터 칩 |
 | 조리 완료 | **미구현** | 재료 차감 → 남은 음식 등록(보관 장소·기한·알림) |
 | 알림 | **미구현** | 소비기한 임박 푸시/로컬 알림 + 알림 액션 버튼(먹었어요/버렸어요/하루 더) |

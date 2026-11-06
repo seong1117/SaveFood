@@ -17,7 +17,9 @@
 - Android Studio, Gradle(Groovy) 8.7, AGP 8.5.2, compileSdk/targetSdk 34, minSdk 26
 - UI: XML 레이아웃 + Material Components(1.12), Fragment + BottomNavigationView, RecyclerView
 - Firebase: Authentication(이메일/비밀번호), Cloud Firestore (BoM 33.1.2)
-- CameraX 1.3.4 + ML Kit 한국어 텍스트 인식(OCR)
+- CameraX 1.3.4 + ML Kit 한국어 텍스트 인식(OCR, 영수증) + ML Kit 커스텀 이미지 라벨링(식재료 사진)
+- 바코드 스캔은 팀 회의로 제외함(구현 대비 실사용 효율 낮음)
+- 빌드 JDK는 17~21 (Gradle 8.7은 JDK 25에서 동작하지 않음. Android Studio Gradle JDK를 jbr-21 등으로 지정)
 - Compose, ViewBinding, Hilt 등은 사용하지 않음. 새로 도입하기 전에 먼저 물어볼 것.
 - 앱 패키지: `com.savefood.app`
 
@@ -39,7 +41,11 @@ app/src/main/java/com/savefood/app/
 ├─ data/FoodRepository     더미 저장소(싱글톤). 시그니처 유지한 채 Firestore로 교체할 곳
 ├─ ui/home/                HomeFragment, FoodAdapter, LeftoverAdapter,
 │                          FoodMenuBottomSheet, LeftoverBottomSheet
-├─ ui/scan/ScanFragment    CameraX 미리보기 + ML Kit OCR + 등록 폼
+├─ ui/scan/                ScanFragment(모드: 식재료·가격표·영수증 + 등록 폼),
+│                          CameraController(CameraX 미리보기·촬영·탭 초점·플래시),
+│                          FoodClassifier(식재료 사진 분류, assets/food_model.tflite + food_labels.txt),
+│                          PriceTagParser(진열대 가격표 OCR → 큰 글자 품명 후보), OcrPiece(OCR 줄 조각),
+│                          ReceiptParser(영수증 OCR → 품명·수량·구매일, 단위 테스트 있음), FoodCatalog(품목별 이모지·보관 장소·기본 일수)
 ├─ ui/recipe/              RecipeFragment, RecipeAdapter, RecipeDetailActivity
 ├─ ui/settings/            SettingsFragment(계정 표시, 로그아웃)
 └─ util/UiUtils
@@ -52,7 +58,7 @@ app/src/main/java/com/savefood/app/
 - **보관 기한 추적과 상태 정보는 홈 화면에서 항목을 눌렀을 때 뜨는 바텀시트 메뉴**로 제공함(별도 화면 아님)
   - 식품 시트: 보관 기한 진행 막대(등록일·현재·소비기한), 상태 칩(양호/주의/상함), "이 재료로 레시피 보기", 소비 완료, 수량·기한 수정, 폐기 처리
   - 남은 요리 시트: 안전 보관 기한 진행 막대, 임박 알림 스위치, **재조리 가이드**(가로 카드), "다 먹었어요", 보관 정보 수정, 폐기 처리
-- **스캔/등록**: 촬영하면 OCR로 식품명(첫 줄)과 소비기한(날짜 정규식)을 채우고, 사용자가 확인해서 등록. 보관 상태(양호/숙성 중/주의), 보관 장소(냉장실/냉동실/실온)
+- **스캔/등록**: 세 가지 모드(촬영 또는 갤러리 사진). 식재료 = 포장 없는 식재료 사진을 분류해 후보 칩 → 식품명·기한·보관 장소 채움(모델 없거나 틀리면 "자주 사는 품목" 칩으로 바로 선택). 가격표 = 장 볼 때 진열대 가격표를 찍어 품명 후보 칩(가격·행사 문구 제외, 큰 글자 우선). 영수증 = OCR → 품명·수량 목록(가격 무시)을 골라 일괄 등록, 영수증 날짜는 등록일로 사용. 결과는 모두 "추정" 표시 후 사용자가 확인. 보관 상태(양호/숙성 중/주의), 보관 장소(냉장실/냉동실/실온)
 - **레시피**: 추천 목록(재료 N/M 보유, 임박 재료 칩) → 상세(재료 보유/부족, 조리 순서) → "조리 완료"
 - **조리 완료 이후 흐름(미구현, 설계 확정)**: 사용한 재료 확인(수량 수정) → 재고에서 차감 → 남은 음식 보관 등록(남은 양, 보관 장소, 권장 소비기한 1/3/5일 기본 3일, 마감 전 알림) → 홈의 "남은 요리"에 표시
 

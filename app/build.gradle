@@ -53,6 +53,11 @@ dependencies {
 
     // ML Kit (한국어 OCR)
     implementation 'com.google.mlkit:text-recognition-korean:16.0.0'
+    // ML Kit (식재료 사진 분류: 팀이 학습한 TFLite 모델 사용)
+    implementation 'com.google.mlkit:image-labeling-custom:17.0.3'
+
+    // 단위 테스트 (영수증 파서 등)
+    testImplementation 'junit:junit:4.13.2'
 }
 
 // google-services.json 이 있을 때만 Firebase 플러그인 적용
