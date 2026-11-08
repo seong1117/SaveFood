@@ -27,6 +27,8 @@ public class RecipeRecommender {
             String ingredientName = normalize(ingredient.foodName);
             for (FoodItem food : foods) {
                 String foodName = normalize(food.name);
+                // 이름이 비면 contains("")가 항상 true이므로 건너뜀
+                if (foodName.isEmpty() || ingredientName.isEmpty()) continue;
                 if (foodName.contains(ingredientName) || ingredientName.contains(foodName)) {
                     matchedFood = food;
                     break;

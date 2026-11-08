@@ -15,17 +15,17 @@ public class Recipe {
     public List<Ingredient> ingredients = new ArrayList<>();
     public List<Step> steps = new ArrayList<>();
 
-public static class Ingredient {
-    public String foodName;   // 푸드 이름 매칭
-    public String amount;
-    public boolean have;      // 있다 | 없다
+    public static class Ingredient {
+        public String foodName;   // 푸드 이름 매칭
+        public String amount;
+        public boolean have;      // 있다 | 없다
 
-    public Ingredient(String foodName, String amount) {
-        this.foodName = foodName;
-        this.amount = amount;
+        public Ingredient(String foodName, String amount) {
+            this.foodName = foodName;
+            this.amount = amount;
+        }
+        public String display() { return (foodName + " " + amount).trim(); }
     }
-    public String display() { return (foodName + " " + amount).trim(); }
-}
 
     public static class Step {
         public String title;
