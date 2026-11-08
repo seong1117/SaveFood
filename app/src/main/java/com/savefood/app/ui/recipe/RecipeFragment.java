@@ -13,18 +13,22 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.chip.ChipGroup;
 import com.savefood.app.R;
 import com.savefood.app.data.FoodRepository;
+import com.savefood.app.data.RecipeRecommender;
 import com.savefood.app.model.Recipe;
 
 import java.util.List;
 
 /**
- * 레시피 추천 목록.
- * TODO(팀원): 보유 식재료·소비기한을 기준으로 추천 순서를 계산하세요
- *  (임박 재료를 많이 쓰는 레시피 우선, 부족 재료 적은 순 등).
+ * Recipe list sorted by owned / expiring foods / 보유·임박 재료 기준 레시피 추천 목록
  */
 public class RecipeFragment extends Fragment {
+
+    private RecipeAdapter adapter;
+    private TextView tvCount;
+    private RecipeRecommender.Sort sort = RecipeRecommender.Sort.URGENT_FIRST;
 
     @Nullable
     @Override
@@ -37,17 +41,41 @@ public class RecipeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        List<Recipe> recipes = FoodRepository.get().getRecipes();
-        ((TextView) view.findViewById(R.id.tv_count)).setText("맞춤 추천 " + recipes.size() + "개");
+        tvCount = view.findViewById(R.id.tv_count);
 
         RecyclerView rv = view.findViewById(R.id.rv_recipe);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        RecipeAdapter adapter = new RecipeAdapter(recipe -> {
+        adapter = new RecipeAdapter(recipe -> {
             Intent intent = new Intent(requireContext(), RecipeDetailActivity.class);
             intent.putExtra(RecipeDetailActivity.EXTRA_RECIPE_ID, recipe.id);
             startActivity(intent);
         });
         rv.setAdapter(adapter);
-        adapter.submit(recipes);
+
+        // Filter chips -> sort type / 필터 칩 -> 정렬 기준
+        ChipGroup group = view.findViewById(R.id.chip_group_filter);
+        group.setOnCheckedStateChangeListener((chipGroup, checkedIds) -> {
+            if (checkedIds.isEmpty()) return;
+            int checkedId = checkedIds.get(0);
+            sort = checkedId == R.id.chip_quick ? RecipeRecommender.Sort.QUICK
+                    : checkedId == R.id.chip_least_missing ? RecipeRecommender.Sort.LEAST_MISSING
+                    : RecipeRecommender.Sort.URGENT_FIRST;
+            refresh();
+        });
+    }
+
+    // Refresh after scan / 스캔 후 돌아오면 갱신
+    @Override
+    public void onResume() {
+        super.onResume();
+        refresh();
+    }
+
+    // Recalculate and show list / 다시 계산해서 목록 표시
+    private void refresh() {
+        FoodRepository repo = FoodRepository.get();
+        List<Recipe> list = RecipeRecommender.recommend(repo.getRecipes(), repo.getFoods(), sort);
+        tvCount.setText("맞춤 추천 " + list.size() + "개");
+        adapter.submit(list);
     }
 }
