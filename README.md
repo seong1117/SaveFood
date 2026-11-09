@@ -60,3 +60,22 @@ app/src/main/java/com/savefood/app/
 - 기능 브랜치: `feature/기능명` (예: `feature/firestore-food`) → Pull Request → 1명 이상 리뷰 후 merge
 - 커밋 메시지: `feat: …`, `fix: …`, `ui: …`, `docs: …`
 - 같은 파일(특히 `res/layout`, `FoodRepository`)을 동시에 수정하지 않도록 담당 영역을 나눠 작업
+
+## 5. 계정 기능
+
+| 기능 | 위치 |
+|---|---|
+| 로그인 / 자동 로그인 / 게스트 둘러보기 | `auth/LoginActivity` |
+| 회원가입(닉네임·약관 동의·인증 메일 발송) | `auth/SignUpActivity` |
+| 비밀번호 찾기(재설정 메일) | `LoginActivity` 의 다이얼로그 |
+| 계정 관리(닉네임·비밀번호 변경, 이메일 인증, 로그아웃, 회원 탈퇴) | `ui/settings/AccountActivity` |
+| 사용자 프로필/데이터 삭제 | `data/UserRepository` (`users/{uid}`) |
+| 오류 메시지 한글화 / 입력 검증 | `auth/AuthErrors`, `auth/AuthValidator` |
+
+Firebase 콘솔에서 한 번 설정할 것:
+1. Authentication → 로그인 방법 → 이메일/비밀번호 사용 설정
+2. Firestore → 규칙 탭에 `firestore.rules` 내용을 게시
+3. (선택) Authentication → 템플릿 → 이메일 주소 확인 / 비밀번호 재설정 → 언어를 한국어로 변경
+
+비밀번호 정책(8자 이상, 영문+숫자)은 `AuthValidator.password()` 한 곳에서 바꿀 수 있습니다.
+회원 탈퇴 시 `users/{uid}/foods`, `leftovers` 하위 컬렉션을 함께 지우므로, 하위 컬렉션을 추가하면 `UserRepository.SUB_COLLECTIONS` 에도 넣어 주세요.

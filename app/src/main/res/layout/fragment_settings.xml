@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -22,40 +23,37 @@
         android:padding="16dp">
 
         <TextView
-            style="@style/SaveFood.Caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="계정" />
-
-        <TextView
             android:id="@+id/tv_account"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:textColor="@color/text_primary"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_email"
+            style="@style/SaveFood.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- TODO(팀원): 알림 시간 설정, 기본 보관 기한, 데이터 초기화 등 설정 항목 추가 -->
-
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_logout"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:id="@+id/btn_account"
+        style="@style/Widget.SaveFood.Button"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="16dp"
-        android:text="로그아웃"
-        android:textColor="@color/red"
-        app:cornerRadius="16dp"
-        app:strokeColor="@color/red"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="계정 관리" />
+
+    <!-- TODO(팀원): 알림 시간 설정, 기본 보관 기한, 데이터 초기화 등 설정 항목 추가 -->
 
     <TextView
         android:id="@+id/tv_version"
         style="@style/SaveFood.Caption"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:gravity="center" />
 </LinearLayout>
