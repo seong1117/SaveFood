@@ -17,23 +17,26 @@ public class RecipeRecommender {
         return text.replaceAll("\\(.*?\\)", "").replaceAll("\\s+", "").trim();
     }
 
+    // 재료 이름과 맞는 보유 식품 찾기 (없으면 null)
+    public static FoodItem findMatch(String ingredientFoodName, List<FoodItem> foods) {
+        String ingredientName = normalize(ingredientFoodName == null ? "" : ingredientFoodName);
+        if (ingredientName.isEmpty()) return null;
+        for (FoodItem food : foods) {
+            String foodName = normalize(food.name);
+            // 이름이 비면 contains("")가 항상 true이므로 건너뜀
+            if (foodName.isEmpty()) continue;
+            if (foodName.contains(ingredientName) || ingredientName.contains(foodName)) return food;
+        }
+        return null;
+    }
+
     // Calculate score for each recipe / 레시피별 점수 계산
     public static void evaluate(Recipe recipe, List<FoodItem> foods) {
         recipe.usedFoods.clear();
         recipe.score = 0;
         int missingCount = 0;
         for (Recipe.Ingredient ingredient : recipe.ingredients) {
-            FoodItem matchedFood = null;
-            String ingredientName = normalize(ingredient.foodName);
-            for (FoodItem food : foods) {
-                String foodName = normalize(food.name);
-                // 이름이 비면 contains("")가 항상 true이므로 건너뜀
-                if (foodName.isEmpty() || ingredientName.isEmpty()) continue;
-                if (foodName.contains(ingredientName) || ingredientName.contains(foodName)) {
-                    matchedFood = food;
-                    break;
-                }
-            }
+            FoodItem matchedFood = findMatch(ingredient.foodName, foods);
             ingredient.have = matchedFood != null;
             if (matchedFood == null) {
                 missingCount++;
