@@ -32,5 +32,13 @@
         <activity
             android:name=".ui.recipe.RecipeDetailActivity"
             android:exported="false" />
+        <activity
+            android:name=".auth.SignUpActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.settings.AccountActivity"
+            android:exported="false" />
     </application>
 </manifest>

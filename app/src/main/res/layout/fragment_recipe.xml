@@ -21,15 +21,17 @@
         android:text="임박 재료로 만드는 추천 요리"
         android:textSize="13sp" />
 
-    <!-- TODO(팀원): 필터 칩(임박 재료 우선 / 30분 이내 / 부족 재료 적은 순) 동작 구현 -->
     <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         app:singleSelection="true"
+        app:selectionRequired="true"
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
         <com.google.android.material.chip.Chip
+            android:id="@+id/chip_urgent"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -37,12 +39,14 @@
             android:text="임박 재료 우선" />
 
         <com.google.android.material.chip.Chip
+            android:id="@+id/chip_quick"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="30분 이내" />
 
         <com.google.android.material.chip.Chip
+            android:id="@+id/chip_least_missing"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
