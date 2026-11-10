@@ -60,6 +60,7 @@ public class FoodRepository {
     private final List<FoodItem> foods = new ArrayList<>();
     private final List<Leftover> leftovers = new ArrayList<>();
     private final List<Recipe> recipes = new ArrayList<>();
+    private final RecipeAiClient recipeAi = new RecipeAiClient();
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private ListenerRegistration foodsReg;
@@ -248,6 +249,27 @@ public class FoodRepository {
     public Recipe getRecipe(String id) {
         for (Recipe r : recipes) if (r.id.equals(id)) return r;
         return null;
+    }
+
+    // 사용자가 직접 추가한 레시피 (지금은 메모리에만 저장, 앱 종료 시 초기화)
+    public void addRecipe(Recipe recipe) {
+        if (recipe.id == null) recipe.id = uid();
+        recipe.custom = true;
+        recipes.add(recipe);
+    }
+
+    public boolean isRecipeAiAvailable() {
+        return RecipeAiClient.isAvailable();
+    }
+
+    // 요리 이름으로 AI 레시피 초안 생성 (보유 식품 이름을 함께 보내 매칭되게 함)
+    public void generateRecipeDraft(String dishName, RecipeAiClient.Callback callback) {
+        List<String> owned = new ArrayList<>();
+        for (FoodItem f : getFoods()) {
+            String name = f.name.replaceAll("\\(.*?\\)", "").trim();
+            if (!name.isEmpty() && !owned.contains(name)) owned.add(name);
+        }
+        recipeAi.generate(dishName, owned, callback);
     }
 
     // ---------- 더미 데이터 (식품 더미는 제거됨) ----------
