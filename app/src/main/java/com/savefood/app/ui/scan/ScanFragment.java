@@ -2,6 +2,7 @@ package com.savefood.app.ui.scan;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
@@ -13,6 +14,7 @@ import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -58,8 +60,10 @@ import java.util.UUID;
  *           모델이 없거나 틀리면 "자주 사는 품목" 칩(FoodCatalog)으로 바로 고른다
  *  - 가격표: 진열대 가격표 사진 → OCR → PriceTagParser(큰 글자 품명) 후보 → 식품명 채움
  *  - 영수증: 사진 → OCR → ReceiptParser(품명·수량, 구매일) → 골라서 한꺼번에 등록
- *  - 소비기한: 포장지·라벨 사진 → OCR → ExpiryDateParser(날짜 정규화) 후보 → 기한 칸 채움
- *           영수증·가격표에는 기한이 없으므로, 기한이 긴 품목은 포장지를 따로 찍어 고친다
+ *  - 소비기한: 두 번 촬영. ① 포장지 날짜 → OCR → ExpiryDateParser(날짜 정규화) 후보 → 기한 칸
+ *           ② 포장지 제품명 → OCR → PriceTagParser(큰 글자) 후보 → 식품명 칸
+ *           이름과 날짜는 포장의 다른 면에 있기 쉬워서 따로 찍는다. ②는 건너뛰고 직접 입력할 수 있다
+ *  - 처음 들어오면 사용 가이드(ScanGuide)를 보여 준다("다시 보지 않기" 전까지)
  *  - 카메라 촬영 또는 "사진" 버튼(갤러리)으로 입력. 결과는 모두 "추정"이며 사용자가 확인한다
  *  - 카메라 세부 사항은 CameraController 가 맡는다
  */
@@ -69,17 +73,23 @@ public class ScanFragment extends Fragment {
 
     private enum Mode { FOOD, PRICE_TAG, RECEIPT, EXPIRY }
 
+    /** 소비기한 모드의 촬영 단계: ① 날짜 → ② 식품명 */
+    private enum ExpiryStep { DATE, NAME }
+
     private PreviewView previewView;
     private CameraController camera;
     private TextRecognizer recognizer;
     @Nullable private FoodClassifier classifier;
     private Mode mode = Mode.FOOD;
+    private ExpiryStep expiryStep = ExpiryStep.DATE;
 
     private Button btnCapture;
     private ImageButton btnFlash;
     private TextView tvHint, tvResult;
     private ChipGroup chipsCandidates, chipsQuick;
-    private View scrollQuick;
+    private View scrollQuick, rowExpiryStep, btnExpiryRedo;
+    private TextView tvExpiryStep;
+    private Button btnExpirySkip;
     private TextInputEditText etName, etExpiry, etQuantity;
     private ChipGroup chipsStatus;
     private MaterialButtonToggleGroup toggleLocation;
@@ -118,6 +128,10 @@ public class ScanFragment extends Fragment {
         chipsCandidates = view.findViewById(R.id.chips_candidates);
         chipsQuick = view.findViewById(R.id.chips_quick);
         scrollQuick = view.findViewById(R.id.scroll_quick);
+        rowExpiryStep = view.findViewById(R.id.row_expiry_step);
+        tvExpiryStep = view.findViewById(R.id.tv_expiry_step);
+        btnExpiryRedo = view.findViewById(R.id.btn_expiry_redo);
+        btnExpirySkip = view.findViewById(R.id.btn_expiry_skip);
         etName = view.findViewById(R.id.et_name);
         etExpiry = view.findViewById(R.id.et_expiry);
         etQuantity = view.findViewById(R.id.et_quantity);
@@ -144,6 +158,9 @@ public class ScanFragment extends Fragment {
                         .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                         .build()));
         view.findViewById(R.id.btn_register).setOnClickListener(v -> register());
+        view.findViewById(R.id.btn_guide).setOnClickListener(v -> ScanGuide.show(requireContext()));
+        btnExpiryRedo.setOnClickListener(v -> setExpiryStep(ExpiryStep.DATE));
+        btnExpirySkip.setOnClickListener(v -> onExpirySideButton());
 
         MaterialButtonToggleGroup toggleMode = view.findViewById(R.id.toggle_mode);
         toggleMode.addOnButtonCheckedListener((group, id, checked) -> {
@@ -157,6 +174,7 @@ public class ScanFragment extends Fragment {
 
         if (hasCameraPermission()) startCamera();
         else permissionLauncher.launch(Manifest.permission.CAMERA);
+        if (savedInstanceState == null) ScanGuide.showIfNeeded(requireContext());
     }
 
     @Override
@@ -187,7 +205,7 @@ public class ScanFragment extends Fragment {
             @Override
             public void onStarted(boolean hasFlash) {
                 btnFlash.setVisibility(hasFlash ? View.VISIBLE : View.GONE);
-                setMode(mode);   // 안내 문구 다시 적용
+                applyModeText();   // 안내 문구 다시 적용
             }
 
             @Override
@@ -204,9 +222,17 @@ public class ScanFragment extends Fragment {
 
     private void setMode(Mode newMode) {
         mode = newMode;
+        expiryStep = ExpiryStep.DATE;
         tvResult.setVisibility(View.GONE);
         chipsCandidates.setVisibility(View.GONE);
         scrollQuick.setVisibility(mode == Mode.FOOD ? View.VISIBLE : View.GONE);
+        applyModeText();
+    }
+
+    /** 모드·단계에 맞게 촬영 버튼과 안내 문구를 바꾼다. */
+    private void applyModeText() {
+        rowExpiryStep.setVisibility(mode == Mode.EXPIRY ? View.VISIBLE : View.GONE);
+        if (mode == Mode.EXPIRY) applyExpiryStepText();
         if (camera == null) return;
         if (!hasCameraPermission()) {
             showNoPermission();
@@ -215,8 +241,11 @@ public class ScanFragment extends Fragment {
         if (mode == Mode.RECEIPT) {
             btnCapture.setText("🧾 영수증 촬영");
             tvHint.setText("영수증 전체가 보이게 맞춰 주세요");
+        } else if (mode == Mode.EXPIRY && expiryStep == ExpiryStep.NAME) {
+            btnCapture.setText("🏷 ② 식품명 촬영");
+            tvHint.setText("포장지의 제품 이름을 크게 찍어 주세요");
         } else if (mode == Mode.EXPIRY) {
-            btnCapture.setText("📅 소비기한 촬영");
+            btnCapture.setText("📅 ① 소비기한 촬영");
             tvHint.setText("포장지의 날짜 부분을 가까이 찍어 주세요");
         } else if (mode == Mode.PRICE_TAG) {
             btnCapture.setText("🏷 가격표 촬영");
@@ -281,9 +310,13 @@ public class ScanFragment extends Fragment {
     private void recognize(@NonNull InputImage image, @NonNull Runnable done) {
         if (mode != Mode.FOOD) {
             Mode shotMode = mode;
+            ExpiryStep shotStep = expiryStep;
             recognizer.process(image)
                     .addOnSuccessListener(text -> {
+                        // 인식 중에 모드나 단계를 바꿨으면 결과를 버린다
+                        if (!isAdded() || mode != shotMode || expiryStep != shotStep) return;
                         if (shotMode == Mode.RECEIPT) applyReceipt(text);
+                        else if (shotMode == Mode.EXPIRY && shotStep == ExpiryStep.NAME) applyExpiryName(text);
                         else if (shotMode == Mode.EXPIRY) applyExpiry(text);
                         else applyPriceTag(text);
                     })
@@ -405,7 +438,60 @@ public class ScanFragment extends Fragment {
         chipsCandidates.setVisibility(View.VISIBLE);
         ((Chip) chipsCandidates.getChildAt(0)).setChecked(true);
         applyExpiryDate(found.get(0));
-        toast("추정 결과예요. 맞는 날짜를 골라 주세요");
+        applyExpiryStepText();
+        // 날짜 후보 칩은 이름 촬영 때 지워지므로, 고를 날짜가 여러 개면 이 단계에 머문다
+        if (found.size() == 1) {
+            setExpiryStep(ExpiryStep.NAME);
+            toast("날짜를 읽었어요. 이제 제품 이름을 찍어 주세요");
+        } else {
+            toast("맞는 날짜를 고른 뒤 \"다음: 이름\"을 눌러 주세요");
+        }
+    }
+
+    /** ② 포장지 제품명. 가격표처럼 큰 글자를 품명 후보로 본다. 기한은 ①에서 읽은 그대로 둔다. */
+    private void applyExpiryName(Text text) {
+        Log.d(TAG, "식품명 OCR 원문:\n" + text.getText());   // 파서 보정용 샘플
+        List<String> names = PriceTagParser.names(toPieces(text));
+        List<String> labels = new ArrayList<>();
+        for (String n : names) labels.add(FoodCatalog.emojiFor(n) + " " + n);
+        showChoices(names, labels, "이름을 찾지 못했어요. 다시 찍거나 직접 입력해 주세요");
+    }
+
+    private void setExpiryStep(ExpiryStep step) {
+        expiryStep = step;
+        chipsCandidates.removeAllViews();
+        chipsCandidates.setVisibility(View.GONE);
+        if (step == ExpiryStep.DATE) {
+            expiryFixed = false;
+            tvResult.setVisibility(View.GONE);
+        }
+        applyModeText();
+    }
+
+    /** 단계 표시줄: 지금 단계, "날짜 다시"(② 단계에서만), 오른쪽 버튼(① → 다음/날짜 직접 입력, ② → 이름 직접 입력) */
+    private void applyExpiryStepText() {
+        if (expiryStep == ExpiryStep.DATE) {
+            tvExpiryStep.setText("① 날짜 촬영 → ② 이름 촬영");
+            btnExpiryRedo.setVisibility(View.GONE);
+            btnExpirySkip.setText(expiryFixed ? "다음: 이름" : "날짜 직접 입력");
+        } else {
+            tvExpiryStep.setText("① 날짜 ✓ → ② 이름 촬영");
+            btnExpiryRedo.setVisibility(View.VISIBLE);
+            btnExpirySkip.setText("이름 직접 입력");
+        }
+    }
+
+    /** ①: 날짜를 정했으면 ②로, 아니면 날짜 선택창. ②: 식품명 칸에 바로 입력. */
+    private void onExpirySideButton() {
+        if (expiryStep == ExpiryStep.DATE) {
+            if (expiryFixed) setExpiryStep(ExpiryStep.NAME);
+            else showDatePicker();
+            return;
+        }
+        etName.requestFocus();
+        InputMethodManager imm = (InputMethodManager)
+                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.showSoftInput(etName, InputMethodManager.SHOW_IMPLICIT);
     }
 
     private void applyExpiryDate(ExpiryDateParser.Candidate c) {
@@ -467,6 +553,7 @@ public class ScanFragment extends Fragment {
             expiry = LocalDate.of(y, m + 1, d);
             expiryFixed = true;
             updateExpiryText();
+            if (mode == Mode.EXPIRY && expiryStep == ExpiryStep.DATE) setExpiryStep(ExpiryStep.NAME);
         }, expiry.getYear(), expiry.getMonthValue() - 1, expiry.getDayOfMonth()).show();
     }
 
@@ -487,6 +574,7 @@ public class ScanFragment extends Fragment {
 
         addFood(name, quantity, LocalDate.now(), expiry, locationText());
         expiryFixed = false;
+        if (mode == Mode.EXPIRY) setExpiryStep(ExpiryStep.DATE);
         toast("냉장고에 등록했어요");
         ((MainActivity) requireActivity()).switchTab(R.id.nav_home);
     }

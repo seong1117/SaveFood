@@ -41,7 +41,8 @@ app/src/main/java/com/savefood/app/
 ├─ data/FoodRepository     더미 저장소(싱글톤). 시그니처 유지한 채 Firestore로 교체할 곳
 ├─ ui/home/                HomeFragment, FoodAdapter, LeftoverAdapter,
 │                          FoodMenuBottomSheet, LeftoverBottomSheet
-├─ ui/scan/                ScanFragment(모드: 식재료·가격표·영수증·소비기한 + 등록 폼),
+├─ ui/scan/                ScanFragment(모드: 식재료·가격표·영수증·소비기한 + 등록 폼, 소비기한은 ①날짜 ②식품명 두 번 촬영),
+│                          ScanGuide(스캔 사용 가이드, "다시 보지 않기"까지 매번 표시),
 │                          CameraController(CameraX 미리보기·촬영·탭 초점·플래시, 미리보기 영역만 잘라 OCR),
 │                          FoodClassifier(식재료 사진 분류, assets/food_model.tflite + food_labels.txt),
 │                          PriceTagParser(진열대 가격표 OCR → 큰 글자 품명 후보, 나뉜 줄 잇기·잡음 기호 제거), OcrPiece(OCR 줄 조각),

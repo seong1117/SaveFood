@@ -10,13 +10,30 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="식품 스캔"
-            android:textColor="@color/text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="식품 스캔"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <!-- 사용 가이드 다시 보기 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_guide"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="❔ 사용법"
+                android:textColor="@color/green_dark" />
+        </LinearLayout>
 
         <!-- 촬영 모드: 식재료 / 가격표 / 영수증 / 소비기한 -->
         <com.google.android.material.button.MaterialButtonToggleGroup
@@ -55,7 +72,7 @@
                 android:layout_weight="1"
                 android:text="영수증" />
 
-            <!-- 포장지·라벨의 소비기한(유통기한) 날짜만 읽어 기한 칸을 채운다 -->
+            <!-- 포장지의 소비기한 날짜와 식품명을 차례로 찍어 채운다 -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_mode_expiry"
                 style="?attr/materialButtonOutlinedStyle"
@@ -135,6 +152,43 @@
                 android:textColor="@color/green_dark"
                 app:cornerRadius="16dp"
                 app:strokeColor="@color/green" />
+        </LinearLayout>
+
+        <!-- 소비기한 모드: ① 날짜 → ② 식품명 두 번 촬영. 식품명은 건너뛰고 직접 입력할 수 있다 -->
+        <LinearLayout
+            android:id="@+id/row_expiry_step"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_expiry_step"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_expiry_redo"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="날짜 다시"
+                android:textColor="@color/text_secondary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_expiry_skip"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="이름 직접 입력"
+                android:textColor="@color/green_dark" />
         </LinearLayout>
 
         <!-- 식재료 모드: 자주 사는 품목 빠른 선택(사진 인식이 없거나 틀렸을 때) -->
