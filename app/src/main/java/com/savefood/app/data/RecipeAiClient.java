@@ -37,7 +37,7 @@ public class RecipeAiClient {
     private static final String TAG = "RecipeAiClient";
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
     // 무료 모델 목록은 Groq 콘솔에서 확인 후 필요하면 변경
-    private static final String MODEL = "llama-3.3-70b-versatile";
+    private static final String MODEL = "openai/gpt-oss-120b";
     private static final String[] DIFFICULTIES = {"쉬움", "보통", "어려움"};
     private static final String DEFAULT_EMOJI = "🍽️";
 
@@ -59,10 +59,12 @@ public class RecipeAiClient {
             - servings는 1인분 기준으로 써.
             - 재료 이름에는 수식어나 양을 넣지 마. ("신선한 우유" ✗ → "우유", "양파 1개" ✗ → name "양파", amount "1개")
             - amount는 g, ml, 개, 큰술, 작은술, 공기, 쪽, 컵 같은 한국 가정 단위로 써. 소금·후추처럼 양이 애매하면 "약간".
+            - 단위는 재료에 맞게 써. (마늘 3쪽, 대파 1/2대, 양파 1/2개, 밥 1공기)
             - 재료는 3~12개, 조리 단계는 2~7개.
             - minutes는 steps의 minutes 합과 비슷하게 맞춰.
+            - 조리 단계에서 쓰는 재료(기름, 양념 포함)는 모두 ingredients에 넣어.
             - 고기·생선·달걀은 안전하게 익히는 기준을 설명에 포함해. (예: 닭고기 중심 온도 75℃ 1분 이상)
-            - 사용자가 준 "보유 재료" 중 이 요리에 쓰이는 재료가 있으면 그 이름을 그대로 사용해.
+            - "보유 재료"는 이름 맞추기용이야. 이 요리에 원래 들어가는 재료와 같은 것만 그 이름을 그대로 쓰고, 요리에 안 맞는 보유 재료는 절대 넣지 마.
             - 입력이 음식 이름이 아니면 {"error": "음식 이름이 아니에요"} 만 답해.
             """;
 
