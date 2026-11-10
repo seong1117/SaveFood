@@ -11,17 +11,20 @@ public class Recipe {
     public int servings;
     public String difficulty;                       // 쉬움 / 보통 / 어려움
     public List<String> usedFoods = new ArrayList<>(); // 사용되는 임박 재료 이름(칩)
+    public int score;                               // Recommend score / 추천 점수
     public List<Ingredient> ingredients = new ArrayList<>();
     public List<Step> steps = new ArrayList<>();
 
     public static class Ingredient {
-        public String name;    // 예: "닭가슴살 2개"
-        public boolean have;   // 보유 여부
+        public String foodName;   // 푸드 이름 매칭
+        public String amount;
+        public boolean have;      // 있다 | 없다
 
-        public Ingredient(String name, boolean have) {
-            this.name = name;
-            this.have = have;
+        public Ingredient(String foodName, String amount) {
+            this.foodName = foodName;
+            this.amount = amount;
         }
+        public String display() { return (foodName + " " + amount).trim(); }
     }
 
     public static class Step {

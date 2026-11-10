@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.savefood.app.R;
 import com.savefood.app.data.FoodRepository;
+import com.savefood.app.data.RecipeRecommender;
 import com.savefood.app.model.Recipe;
 import com.savefood.app.util.UiUtils;
 
@@ -27,6 +28,8 @@ public class RecipeDetailActivity extends AppCompatActivity {
 
         Recipe recipe = FoodRepository.get().getRecipe(getIntent().getStringExtra(EXTRA_RECIPE_ID));
         if (recipe == null) { finish(); return; }
+        // Recheck have/missing with current foods / 현재 보유 식품으로 보유 여부 다시 계산
+        RecipeRecommender.evaluate(recipe, FoodRepository.get().getFoods());
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -42,7 +45,7 @@ public class RecipeDetailActivity extends AppCompatActivity {
         LinearLayout ingredients = findViewById(R.id.layout_ingredients);
         for (Recipe.Ingredient ing : recipe.ingredients) {
             TextView tv = new TextView(this);
-            tv.setText((ing.have ? "✓  " : "−  ") + ing.name + (ing.have ? "" : "  (부족)"));
+            tv.setText((ing.have ? "✓  " : "−  ") + ing.display() + (ing.have ? "" : "  (부족)"));
             tv.setTextSize(14);
             tv.setTextColor(getColor(ing.have ? R.color.text_primary : R.color.red));
             tv.setPadding(0, UiUtils.dp(this, 4), 0, UiUtils.dp(this, 4));

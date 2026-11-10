@@ -109,30 +109,26 @@ public class FoodRepository {
         leftovers.add(new Leftover(uid(), "구운 브로콜리", "🥦", 1, today.minusDays(1), today.plusDays(2)));
 
         recipes.add(recipe("r1", "연어 우유 크림 파스타", "🍝", 25, 2, "보통",
-                Arrays.asList("연어 필렛", "우유"),
-                new Recipe.Ingredient[]{ing("연어 필렛 200g", true), ing("우유 200ml", true), ing("파스타면 100g", true),
-                        ing("마늘 3쪽", true), ing("파르메산 치즈 20g", false)},
+                new Recipe.Ingredient[]{ing("연어 필렛", "200g"), ing("우유", "200ml"), ing("파스타면", "100g"),
+                        ing("마늘", "3쪽"), ing("파르메산 치즈", "20g")},
                 new Recipe.Step[]{step("면 삶기", 10, "끓는 물에 소금을 넣고 파스타면을 8분간 삶아 건져요."),
                         step("연어 굽기", 7, "연어를 한입 크기로 썰어 마늘과 함께 노릇하게 구워요."),
                         step("크림 소스 만들기", 8, "우유를 붓고 졸인 뒤 면을 넣어 버무려요.")}));
 
         recipes.add(recipe("r2", "연어 아보카도 볼", "🥗", 15, 1, "쉬움",
-                Arrays.asList("연어 필렛"),
-                new Recipe.Ingredient[]{ing("연어 필렛 150g", true), ing("아보카도 1개", true), ing("밥 1공기", true),
-                        ing("간장 소스 2큰술", true), ing("김가루", false)},
+                new Recipe.Ingredient[]{ing("연어 필렛", "150g"), ing("아보카도", "1개"), ing("밥", "1공기"),
+                        ing("간장 소스", "2큰술"), ing("김가루", "")},
                 new Recipe.Step[]{step("재료 준비", 5, "연어와 아보카도를 한입 크기로 썰어요."),
                         step("올리기", 5, "밥 위에 연어와 아보카도를 올리고 소스를 뿌려요.")}));
 
         recipes.add(recipe("r3", "블루베리 요거트 스무디", "🥤", 5, 1, "쉬움",
-                Arrays.asList("우유"),
-                new Recipe.Ingredient[]{ing("냉동 블루베리 100g", true), ing("그릭 요거트 100g", true), ing("우유 150ml", true),
-                        ing("얼음 4개", true), ing("꿀 1큰술", false)},
+                new Recipe.Ingredient[]{ing("냉동 블루베리", "100g"), ing("그릭 요거트", "100g"), ing("우유", "150ml"),
+                        ing("얼음", "4개"), ing("꿀", "1큰술")},
                 new Recipe.Step[]{step("갈기", 3, "모든 재료를 믹서에 넣고 곱게 갈아요.")}));
 
         recipes.add(recipe("r4", "토스카나식 마늘 치킨", "🍗", 25, 2, "보통",
-                Arrays.asList("우유"),
-                new Recipe.Ingredient[]{ing("닭가슴살 2개", true), ing("마늘 5쪽", true), ing("크림 100ml", true),
-                        ing("시금치 50g", true), ing("건토마토 30g", true), ing("파르메산 10g", false)},
+                new Recipe.Ingredient[]{ing("닭가슴살", "2개"), ing("마늘", "5쪽"), ing("크림", "100ml"),
+                        ing("시금치", "50g"), ing("건토마토", "30g"), ing("파르메산", "10g")},
                 new Recipe.Step[]{step("재료 손질하기", 5, "닭가슴살에 소금·후추를 뿌려요. 마늘은 편 썰고, 채소는 씻어 준비해요."),
                         step("닭가슴살 굽기", 10, "팬에 올리브유 1큰술을 두르고 닭가슴살 양면을 노릇하게 구워 덜어요."),
                         step("크림 소스에 끓이기", 10, "마늘·건토마토를 볶고 크림을 넣어요. 닭·시금치를 넣어 닭 중심 75℃에서 1분.")}));
@@ -142,8 +138,9 @@ public class FoodRepository {
         return UUID.randomUUID().toString();
     }
 
-    private static Recipe.Ingredient ing(String name, boolean have) {
-        return new Recipe.Ingredient(name, have);
+    // 재료 생성 (보유 여부·임박 재료는 RecipeRecommender가 계산)
+    private static Recipe.Ingredient ing(String foodName, String amount) {
+        return new Recipe.Ingredient(foodName, amount);
     }
 
     private static Recipe.Step step(String title, int minutes, String desc) {
@@ -151,7 +148,7 @@ public class FoodRepository {
     }
 
     private static Recipe recipe(String id, String name, String emoji, int minutes, int servings, String difficulty,
-                                 List<String> used, Recipe.Ingredient[] ingredients, Recipe.Step[] steps) {
+                                 Recipe.Ingredient[] ingredients, Recipe.Step[] steps) {
         Recipe r = new Recipe();
         r.id = id;
         r.name = name;
@@ -159,7 +156,6 @@ public class FoodRepository {
         r.minutes = minutes;
         r.servings = servings;
         r.difficulty = difficulty;
-        r.usedFoods = new ArrayList<>(used);
         r.ingredients = new ArrayList<>(Arrays.asList(ingredients));
         r.steps = new ArrayList<>(Arrays.asList(steps));
         return r;
