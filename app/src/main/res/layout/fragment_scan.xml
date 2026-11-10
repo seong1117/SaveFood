@@ -18,7 +18,7 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- 촬영 모드: 식재료 / 가격표 / 영수증 -->
+        <!-- 촬영 모드: 식재료 / 가격표 / 영수증 / 소비기한 -->
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/toggle_mode"
             android:layout_width="match_parent"
@@ -32,6 +32,7 @@
                 android:id="@+id/btn_mode_food"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="식재료" />
@@ -40,6 +41,7 @@
                 android:id="@+id/btn_mode_price"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="가격표" />
@@ -48,9 +50,20 @@
                 android:id="@+id/btn_mode_receipt"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="영수증" />
+
+            <!-- 포장지·라벨의 소비기한(유통기한) 날짜만 읽어 기한 칸을 채운다 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mode_expiry"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="소비기한" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <com.google.android.material.card.MaterialCardView
