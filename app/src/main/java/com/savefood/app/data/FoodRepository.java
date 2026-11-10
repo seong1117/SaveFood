@@ -1,24 +1,54 @@
 package com.savefood.app.data;
 
+import android.util.Log;
+
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.SetOptions;
 import com.savefood.app.model.FoodItem;
 import com.savefood.app.model.Leftover;
 import com.savefood.app.model.Recipe;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * 임시(더미) 데이터 저장소. 앱을 종료하면 데이터가 초기화됩니다.
+ * 데이터 저장소.
+ *  - 식품(foods): Firestore users/{uid}/foods 와 실시간 동기화
+ *  - 남은 요리 / 레시피: 아직 더미 데이터 (담당 팀원이 Firestore 로 교체 예정)
  *
- * TODO(팀원): 이 클래스의 메서드 시그니처는 유지한 채 내부를 Firestore 로 교체하세요.
- *  - users/{uid}/foods, users/{uid}/leftovers  컬렉션 구조 권장
- *  - 화면은 이 클래스만 바라보므로 UI 코드는 수정하지 않아도 됩니다.
+ * 화면은 기존과 똑같이 getFoods() 등을 호출하면 됩니다.
+ * 단, Firestore 데이터는 비동기로 도착하므로 화면에서
+ * addOnChangeListener() 로 변경 알림을 받아 목록을 다시 그려야 합니다.
  */
 public class FoodRepository {
+
+    private static final String TAG = "FoodRepository";
+
+    // Firestore 필드명 (팀 Firestore 모델링과 맞출 것)
+    private static final String F_NAME = "name";
+    private static final String F_EMOJI = "emoji";
+    private static final String F_LOCATION = "location";
+    private static final String F_QUANTITY = "quantity";
+    private static final String F_STATUS = "status";
+    private static final String F_REGISTERED = "registeredDate";
+    private static final String F_EXPIRY = "expiryDate";
+    private static final String F_UPDATED_AT = "updatedAt";
 
     private static FoodRepository instance;
 
@@ -31,8 +61,65 @@ public class FoodRepository {
     private final List<Leftover> leftovers = new ArrayList<>();
     private final List<Recipe> recipes = new ArrayList<>();
 
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private ListenerRegistration foodsReg;
+    private String currentUid;
+    private final List<Runnable> changeListeners = new ArrayList<>();
+
     private FoodRepository() {
         seed();
+        // 로그인하면 동기화 시작, 로그아웃하면 중지 (등록 즉시 현재 상태로 한 번 호출됨)
+        FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+            FirebaseUser user = auth.getCurrentUser();
+            if (user != null) startFoodsSync(user.getUid());
+            else stopFoodsSync();
+        });
+    }
+
+    // ---------- 변경 알림 ----------
+    /** 식품 목록이 바뀌면 호출됨 (메인 스레드). 화면 onStart 에서 등록, onStop 에서 해제 */
+    public void addOnChangeListener(Runnable listener) {
+        if (!changeListeners.contains(listener)) changeListeners.add(listener);
+    }
+
+    public void removeOnChangeListener(Runnable listener) {
+        changeListeners.remove(listener);
+    }
+
+    private void notifyChanged() {
+        for (Runnable r : new ArrayList<>(changeListeners)) r.run();
+    }
+
+    // ---------- Firestore 동기화 ----------
+    private CollectionReference foodsRef() {
+        return db.collection("users").document(currentUid).collection("foods");
+    }
+
+    private void startFoodsSync(String uid) {
+        if (uid.equals(currentUid)) return; // 이미 같은 사용자로 동기화 중
+        stopFoodsSync();
+        currentUid = uid;
+
+        foodsReg = foodsRef()
+                .orderBy(F_EXPIRY, Query.Direction.ASCENDING)
+                .addSnapshotListener((snap, e) -> {
+                    if (e != null) { Log.e(TAG, "식품 목록 수신 실패", e); return; }
+                    if (snap == null) return;
+
+                    foods.clear();
+                    for (DocumentSnapshot d : snap.getDocuments()) {
+                        FoodItem f = fromDoc(d);
+                        if (f != null) foods.add(f);
+                    }
+                    notifyChanged();
+                });
+    }
+
+    private void stopFoodsSync() {
+        if (foodsReg != null) { foodsReg.remove(); foodsReg = null; }
+        currentUid = null;
+        foods.clear();
+        notifyChanged();
     }
 
     // ---------- 식품 ----------
@@ -53,17 +140,85 @@ public class FoodRepository {
         return null;
     }
 
+    /** item.id 를 그대로 Firestore 문서 ID 로 사용 */
     public void addFood(FoodItem item) {
-        foods.add(item);
+        foods.add(item);          // 화면에 즉시 반영
+        notifyChanged();
+        if (currentUid == null) { Log.w(TAG, "로그인 전이라 서버에 저장하지 않음"); return; }
+
+        foodsRef().document(item.id).set(toMap(item))
+                .addOnFailureListener(e -> Log.e(TAG, "식품 추가 실패", e));
+    }
+
+    /** 수정: 같은 id 의 식품을 통째로 교체 */
+    public void updateFood(FoodItem item) {
+        for (int i = 0; i < foods.size(); i++) {
+            if (foods.get(i).id.equals(item.id)) { foods.set(i, item); break; }
+        }
+        notifyChanged();
+        if (currentUid == null) return;
+
+        foodsRef().document(item.id).set(toMap(item), SetOptions.merge())
+                .addOnFailureListener(e -> Log.e(TAG, "식품 수정 실패", e));
     }
 
     public void removeFood(String id) {
         for (int i = 0; i < foods.size(); i++) {
-            if (foods.get(i).id.equals(id)) { foods.remove(i); return; }
+            if (foods.get(i).id.equals(id)) { foods.remove(i); break; }
         }
+        notifyChanged();
+        if (currentUid == null) return;
+
+        foodsRef().document(id).delete()
+                .addOnFailureListener(e -> Log.e(TAG, "식품 삭제 실패", e));
     }
 
-    // ---------- 남은 요리 ----------
+    // ---------- FoodItem <-> Firestore 변환 ----------
+    private static Map<String, Object> toMap(FoodItem f) {
+        Map<String, Object> m = new HashMap<>();
+        m.put(F_NAME, f.name);
+        m.put(F_EMOJI, f.emoji);
+        m.put(F_LOCATION, f.location);
+        m.put(F_QUANTITY, f.quantity);
+        m.put(F_STATUS, f.status);
+        m.put(F_REGISTERED, toTimestamp(f.registeredDate));
+        m.put(F_EXPIRY, toTimestamp(f.expiryDate));
+        m.put(F_UPDATED_AT, FieldValue.serverTimestamp());
+        return m;
+    }
+
+    private static FoodItem fromDoc(DocumentSnapshot d) {
+        LocalDate expiry = toLocalDate(d.getTimestamp(F_EXPIRY));
+        if (expiry == null) { Log.w(TAG, "유통기한 없는 문서 건너뜀: " + d.getId()); return null; }
+
+        LocalDate registered = toLocalDate(d.getTimestamp(F_REGISTERED));
+        Long qty = d.getLong(F_QUANTITY);
+
+        FoodItem f = new FoodItem(
+                d.getId(),
+                d.getString(F_NAME),
+                d.getString(F_EMOJI),
+                d.getString(F_LOCATION),
+                qty == null ? 1 : qty.intValue(),
+                registered == null ? LocalDate.now() : registered,
+                expiry);
+
+        String status = d.getString(F_STATUS);
+        if (status != null) f.status = status; // 없으면 생성자 기본값 "양호"
+        return f;
+    }
+
+    private static Timestamp toTimestamp(LocalDate date) {
+        if (date == null) return null;
+        return new Timestamp(Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+    }
+
+    private static LocalDate toLocalDate(Timestamp ts) {
+        if (ts == null) return null;
+        return ts.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    // ---------- 남은 요리 (더미, 담당자가 Firestore 로 교체 예정) ----------
     public List<Leftover> getLeftovers() {
         List<Leftover> copy = new ArrayList<>(leftovers);
         Collections.sort(copy, (a, b) -> Long.compare(a.getDDay(), b.getDDay()));
@@ -85,7 +240,7 @@ public class FoodRepository {
         }
     }
 
-    // ---------- 레시피 ----------
+    // ---------- 레시피 (더미) ----------
     public List<Recipe> getRecipes() {
         return new ArrayList<>(recipes);
     }
@@ -95,15 +250,9 @@ public class FoodRepository {
         return null;
     }
 
-    // ---------- 더미 데이터 ----------
+    // ---------- 더미 데이터 (식품 더미는 제거됨) ----------
     private void seed() {
         LocalDate today = LocalDate.now();
-
-        foods.add(new FoodItem(uid(), "우유 (1L)", "🥛", "냉장실 · 문 선반", 1, today.minusDays(3), today.plusDays(1)));
-        foods.add(new FoodItem(uid(), "연어 필렛 (200g)", "🐟", "냉장실 · 신선 보관칸", 1, today.minusDays(1), today.plusDays(1)));
-        foods.add(new FoodItem(uid(), "그릭 요거트 (450g)", "🥣", "냉장실 · 위 선반", 1, today.minusDays(4), today.plusDays(3)));
-        foods.add(new FoodItem(uid(), "아보카도 (2개)", "🥑", "냉장실 · 채소칸", 2, today.minusDays(2), today.plusDays(5)));
-        foods.add(new FoodItem(uid(), "냉동 블루베리 (500g)", "🫐", "냉동실 · 위 서랍", 1, today.minusDays(10), today.plusDays(45)));
 
         leftovers.add(new Leftover(uid(), "토스카나식 마늘 치킨", "🍗", 2, today, today.plusDays(3)));
         leftovers.add(new Leftover(uid(), "구운 브로콜리", "🥦", 1, today.minusDays(1), today.plusDays(2)));
