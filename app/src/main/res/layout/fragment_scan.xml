@@ -18,10 +18,59 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
+        <!-- 촬영 모드: 식재료 / 가격표 / 영수증 / 소비기한 -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggle_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:checkedButton="@+id/btn_mode_food"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mode_food"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="식재료" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mode_price"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="가격표" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mode_receipt"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="영수증" />
+
+            <!-- 포장지·라벨의 소비기한(유통기한) 날짜만 읽어 기한 칸을 채운다 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mode_expiry"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:paddingHorizontal="4dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="소비기한" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="220dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/text_primary"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp">
 
@@ -29,18 +78,102 @@
                 android:id="@+id/preview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
+
+            <!-- 권한 없음 / 모드 안내 -->
+            <TextView
+                android:id="@+id/tv_camera_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_badge_green"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="화면을 눌러 초점을 맞추세요"
+                android:textColor="@color/green_dark"
+                android:textSize="12sp" />
+
+            <ImageButton
+                android:id="@+id/btn_flash"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_emoji"
+                android:contentDescription="플래시"
+                android:src="@drawable/ic_flash"
+                android:visibility="gone"
+                app:tint="@color/text_secondary" />
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_capture"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="📷 촬영해서 인식하기 (OCR)"
-            android:textColor="@color/green_dark"
-            app:cornerRadius="16dp"
-            app:strokeColor="@color/green" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_capture"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="2"
+                android:text="📷 촬영해서 인식하기"
+                android:textColor="@color/green_dark"
+                app:cornerRadius="16dp"
+                app:strokeColor="@color/green" />
+
+            <!-- 저장된 사진으로 인식(테스트·갤러리) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_gallery"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:text="🖼 사진"
+                android:textColor="@color/green_dark"
+                app:cornerRadius="16dp"
+                app:strokeColor="@color/green" />
+        </LinearLayout>
+
+        <!-- 식재료 모드: 자주 사는 품목 빠른 선택(사진 인식이 없거나 틀렸을 때) -->
+        <HorizontalScrollView
+            android:id="@+id/scroll_quick"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chips_quick"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleLine="true"
+                app:singleSelection="true" />
+        </HorizontalScrollView>
+
+        <!-- 사진 분류·가격표 후보(추정). 누르면 식품명에 들어간다 -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chips_candidates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:singleSelection="true" />
+
+        <!-- 인식 결과 안내(추정) -->
+        <TextView
+            android:id="@+id/tv_scan_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_card"
+            android:padding="12dp"
+            android:textColor="@color/text_primary"
+            android:textIsSelectable="true"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <TextView
             style="@style/SaveFood.Title"
