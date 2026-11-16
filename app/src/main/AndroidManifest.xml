@@ -33,6 +33,9 @@
             android:name=".ui.recipe.RecipeDetailActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.recipe.CookDoneActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.recipe.AddRecipeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
