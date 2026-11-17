@@ -11,6 +11,7 @@ public class Leftover {
     public int servings;
     public LocalDate cookedDate;
     public LocalDate safeUntil;   // 안전 보관 기한
+    public String location;       // 보관 장소 (냉장실 / 냉동실 / 실온)
     public boolean alarmOn = true;
 
     public Leftover() { }

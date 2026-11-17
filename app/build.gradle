@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// 로컬 전용 키 (local.properties 는 커밋되지 않음)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) localPropsFile.withInputStream { localProps.load(it) }
+
 android {
     namespace 'com.savefood.app'
     compileSdk 34
@@ -12,6 +17,9 @@ android {
         targetSdk 34
         versionCode 1
         versionName "0.1.0"
+
+        // 레시피 AI 채우기(Groq). 키가 없으면 AI 버튼이 숨겨짐
+        buildConfigField "String", "GROQ_API_KEY", "\"${localProps.getProperty('GROQ_API_KEY', '')}\""
     }
 
     buildTypes {

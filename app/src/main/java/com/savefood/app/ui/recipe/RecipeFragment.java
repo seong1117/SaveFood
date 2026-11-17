@@ -52,6 +52,10 @@ public class RecipeFragment extends Fragment {
         });
         rv.setAdapter(adapter);
 
+        // 레시피 직접 추가 (저장 후 돌아오면 onResume 에서 갱신)
+        view.findViewById(R.id.fab_add_recipe).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
+
         // Filter chips -> sort type / 필터 칩 -> 정렬 기준
         ChipGroup group = view.findViewById(R.id.chip_group_filter);
         group.setOnCheckedStateChangeListener((chipGroup, checkedIds) -> {

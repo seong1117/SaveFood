@@ -12,6 +12,7 @@ public class Recipe {
     public String difficulty;                       // 쉬움 / 보통 / 어려움
     public List<String> usedFoods = new ArrayList<>(); // 사용되는 임박 재료 이름(칩)
     public int score;                               // Recommend score / 추천 점수
+    public boolean custom;                          // 사용자가 직접 추가한 레시피
     public List<Ingredient> ingredients = new ArrayList<>();
     public List<Step> steps = new ArrayList<>();
 

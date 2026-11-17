@@ -15,6 +15,7 @@ import com.google.firebase.firestore.SetOptions;
 import com.savefood.app.model.FoodItem;
 import com.savefood.app.model.Leftover;
 import com.savefood.app.model.Recipe;
+import com.savefood.app.model.Substitution;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -60,6 +61,9 @@ public class FoodRepository {
     private final List<FoodItem> foods = new ArrayList<>();
     private final List<Leftover> leftovers = new ArrayList<>();
     private final List<Recipe> recipes = new ArrayList<>();
+    private final RecipeAiClient recipeAi = new RecipeAiClient();
+    // 레시피별 부족 재료 해결 방법 (AI 추정, 조리 완료하면 지움)
+    private final Map<String, List<Substitution>> substitutions = new HashMap<>();
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private ListenerRegistration foodsReg;
@@ -248,6 +252,97 @@ public class FoodRepository {
     public Recipe getRecipe(String id) {
         for (Recipe r : recipes) if (r.id.equals(id)) return r;
         return null;
+    }
+
+    // 사용자가 직접 추가한 레시피 (지금은 메모리에만 저장, 앱 종료 시 초기화)
+    public void addRecipe(Recipe recipe) {
+        if (recipe.id == null) recipe.id = uid();
+        recipe.custom = true;
+        recipes.add(recipe);
+    }
+
+    public boolean isRecipeAiAvailable() {
+        return RecipeAiClient.isAvailable();
+    }
+
+    // 요리 이름으로 AI 레시피 초안 생성 (보유 식품 이름을 함께 보내 매칭되게 함)
+    public void generateRecipeDraft(String dishName, RecipeAiClient.Callback callback) {
+        recipeAi.generate(dishName, ownedFoodNames(), callback);
+    }
+
+    // 보유 식품 이름 목록 (괄호 속 용량 제거, 중복 제거)
+    private List<String> ownedFoodNames() {
+        List<String> owned = new ArrayList<>();
+        for (FoodItem f : getFoods()) {
+            String name = f.name.replaceAll("\\(.*?\\)", "").trim();
+            if (!name.isEmpty() && !owned.contains(name)) owned.add(name);
+        }
+        return owned;
+    }
+
+    // ---------- 부족 재료 해결 방법 ----------
+    /** 부족 재료마다 대체 / 생략 / 꼭 필요 를 AI 로 추정. 대체 재료는 실제 보유 식품인지 다시 확인 */
+    public void suggestSubstitutes(Recipe recipe, RecipeAiClient.SubstituteCallback callback) {
+        List<FoodItem> foods = getFoods();
+        RecipeRecommender.evaluate(recipe, foods);
+        List<String> missing = new ArrayList<>();
+        for (Recipe.Ingredient ing : recipe.ingredients) if (!ing.have) missing.add(ing.foodName);
+        if (missing.isEmpty()) {
+            callback.onSuccess(new ArrayList<>());
+            return;
+        }
+        recipeAi.suggestSubstitutes(recipe, missing, ownedFoodNames(), new RecipeAiClient.SubstituteCallback() {
+            @Override
+            public void onSuccess(List<Substitution> items) {
+                for (Substitution sub : items) {
+                    if (!Substitution.SUBSTITUTE.equals(sub.action)) continue;
+                    FoodItem food = RecipeRecommender.findMatch(sub.use, getFoods());
+                    if (food != null) {
+                        sub.useFoodId = food.id;
+                    } else {
+                        // 목록에 없는 재료를 제안한 경우: 대체로 쓰지 않음
+                        sub.action = Substitution.REQUIRED;
+                        sub.use = "";
+                        sub.tip = "보유 재료 중에서 대신할 재료를 찾지 못했어요.";
+                    }
+                }
+                substitutions.put(recipe.id, items);
+                callback.onSuccess(items);
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
+    }
+
+    /** 이전에 받은 해결 방법 (없으면 null) */
+    public List<Substitution> getSubstitutions(String recipeId) {
+        return substitutions.get(recipeId);
+    }
+
+    // ---------- 조리 완료 ----------
+    /**
+     * 조리 완료 처리: 사용한 재료 수량 반영(0 이하면 삭제) → 남은 음식 등록.
+     * 부족한 재료는 화면에서 차감 목록에 넣지 않으므로 여기서는 보유 식품만 다룸.
+     *
+     * @param newQuantities 식품 id → 조리 후 수량 (바뀐 것만)
+     * @param leftover      남은 음식 (없으면 null)
+     */
+    public void completeCooking(String recipeId, Map<String, Integer> newQuantities, Leftover leftover) {
+        for (Map.Entry<String, Integer> e : newQuantities.entrySet()) {
+            FoodItem food = getFood(e.getKey());
+            if (food == null) continue;
+            if (e.getValue() <= 0) {
+                removeFood(food.id);
+            } else {
+                food.quantity = e.getValue();
+                updateFood(food);
+            }
+        }
+        if (leftover != null) addLeftover(leftover);
+        substitutions.remove(recipeId);
     }
 
     // ---------- 더미 데이터 (식품 더미는 제거됨) ----------

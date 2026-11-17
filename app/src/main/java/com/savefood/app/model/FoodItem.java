@@ -1,12 +1,13 @@
 package com.savefood.app.model;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 /**
  * 냉장고에 등록된 식품.
- * TODO(Firestore 연동): LocalDate 는 Firestore가 직접 저장하지 못하므로
- *  저장할 때 String("yyyy-MM-dd") 또는 Timestamp 로 변환하세요.
+ * Firestore 저장 시 날짜는 FoodRepository 에서 Timestamp 로 변환됨.
+ * D-Day 는 유통기한 날 자정(다음날 00:00)까지 남은 시간 ÷ 24시간으로 계산.
  */
 public class FoodItem {
     public String id;
@@ -32,23 +33,38 @@ public class FoodItem {
         this.expiryDate = expiryDate;
     }
 
-    /** 오늘 기준 남은 일수 (소비기한 당일이면 0, 지났으면 음수) */
+    /** 유통기한 날 자정에 만료 (예: 11/22 → 11/23 00:00) */
+    private LocalDateTime getExpiryDateTime() {
+        return expiryDate.plusDays(1).atStartOfDay();
+    }
+
+    /** 만료까지 남은 시간(분). 지났으면 음수 */
+    private long getRemainMinutes() {
+        return Duration.between(LocalDateTime.now(), getExpiryDateTime()).toMinutes();
+    }
+
+    /** 남은 시간 ÷ 24시간 (내림). 24시간 미만이면 0, 만료 후엔 음수 */
     public long getDDay() {
-        return ChronoUnit.DAYS.between(LocalDate.now(), expiryDate);
+        return Math.floorDiv(getRemainMinutes(), 24L * 60);
     }
 
     public String getDDayLabel() {
         long d = getDDay();
         if (d < 0) return "D+" + (-d);
-        if (d == 0) return "D-DAY";
         return "D-" + d;
     }
 
     public String getRemainText() {
-        long d = getDDay();
-        if (d < 0) return "기한 지남";
-        if (d == 0) return "오늘까지";
-        return d + "일 남음";
+        long minutes = getRemainMinutes();
+
+        if (minutes < 0) {   // 기한 지남 → 지난 시간 표시
+            long over = -minutes;
+            return (over / 60) + "시간 " + (over % 60) + "분 지남";
+        }
+        if (minutes <= 24 * 60) {   // 24시간 이하 → 시간·분으로 표시
+            return (minutes / 60) + "시간 " + (minutes % 60) + "분 남음";
+        }
+        return getDDay() + "일 남음";
     }
 
     public boolean isUrgent() {
