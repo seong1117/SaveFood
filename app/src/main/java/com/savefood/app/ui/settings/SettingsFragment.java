@@ -11,6 +11,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
+import com.savefood.app.notification.DailyExpiryScheduler;
+import com.savefood.app.notification.NotificationSettings;
+
 import com.google.firebase.auth.FirebaseUser;
 import com.savefood.app.BuildConfig;
 import com.savefood.app.R;
@@ -39,6 +44,26 @@ public class SettingsFragment extends Fragment {
 
         view.findViewById(R.id.btn_account).setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), AccountActivity.class)));
+        // 유통기한 알림 시간 설정
+        TextView tvNotifyTime = view.findViewById(R.id.tv_notify_time);
+        tvNotifyTime.setText(NotificationSettings.formatTime(
+                NotificationSettings.getHour(requireContext()),
+                NotificationSettings.getMinute(requireContext())));
+
+        view.findViewById(R.id.row_notify_time).setOnClickListener(v -> {
+            MaterialTimePicker picker = new MaterialTimePicker.Builder()
+                    .setTimeFormat(TimeFormat.CLOCK_12H)
+                    .setHour(NotificationSettings.getHour(requireContext()))
+                    .setMinute(NotificationSettings.getMinute(requireContext()))
+                    .setTitleText("알림 받을 시간")
+                    .build();
+            picker.addOnPositiveButtonClickListener(x -> {
+                NotificationSettings.setTime(requireContext(), picker.getHour(), picker.getMinute());
+                DailyExpiryScheduler.scheduleNext(requireContext());   // 새 시각으로 다시 예약
+                tvNotifyTime.setText(NotificationSettings.formatTime(picker.getHour(), picker.getMinute()));
+            });
+            picker.show(getChildFragmentManager(), "notify_time");
+        });
     }
 
     @Override

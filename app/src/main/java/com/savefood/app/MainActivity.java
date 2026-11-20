@@ -6,7 +6,7 @@ import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-
+import com.savefood.app.notification.DailyExpiryScheduler;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.savefood.app.ui.home.HomeFragment;
 import com.savefood.app.ui.recipe.RecipeFragment;
@@ -23,6 +23,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 매일 유통기한 요약 알림 예약
+        DailyExpiryScheduler.scheduleNext(this);
+
+        // Android 13 이상: 알림 권한 요청 (처음 한 번 팝업)
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 100);
+        }
         bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();

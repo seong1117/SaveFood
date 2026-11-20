@@ -191,7 +191,7 @@ public class FoodRepository {
         return m;
     }
 
-    private static FoodItem fromDoc(DocumentSnapshot d) {
+    public static FoodItem fromDoc(DocumentSnapshot d) {
         LocalDate expiry = toLocalDate(d.getTimestamp(F_EXPIRY));
         if (expiry == null) { Log.w(TAG, "유통기한 없는 문서 건너뜀: " + d.getId()); return null; }
 

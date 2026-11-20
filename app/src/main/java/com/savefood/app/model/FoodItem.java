@@ -80,6 +80,10 @@ public class FoodItem {
         if (over < 24 * 60) return (over / 60) + "시간 " + (over % 60) + "분 전";
         return (over / (24 * 60)) + "일 " + (over % (24 * 60) / 60) + "시간 전";
     }
+    /** 특정 시각 기준 D-Day (예약 알림용) */
+    public long getDDayAt(LocalDateTime time) {
+        return Math.floorDiv(Duration.between(time, getExpiryDateTime()).toMinutes(), 24L * 60);
+    }
     public boolean isUrgent() {
         return getDDay() <= 1;
     }
