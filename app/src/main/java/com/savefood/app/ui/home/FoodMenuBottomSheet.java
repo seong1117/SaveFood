@@ -66,7 +66,17 @@ public class FoodMenuBottomSheet extends BottomSheetDialogFragment {
 
         // 보관 기한 추적
         TextView tvExpiry = v.findViewById(R.id.tv_expiry);
-        tvExpiry.setText("⏰ 소비기한 " + UiUtils.formatDate(food.expiryDate));
+        if (food.isExpired()) {
+            // 기한 지남 → 언제 만료됐는지 표시
+            tvExpiry.setText("⛔ " + food.getExpiredAtText() + "에 만료됐어요 (" + food.getExpiredAgoText() + ")");
+        } else {
+            tvExpiry.setText("⏰ 소비기한 " + UiUtils.formatDate(food.expiryDate));
+        }if (food.isExpired()) {
+            // 기한 지남 → 언제 만료됐는지 표시
+            tvExpiry.setText("⛔ " + food.getExpiredAtText() + "에 만료됐어요 (" + food.getExpiredAgoText() + ")");
+        } else {
+            tvExpiry.setText("⏰ 소비기한 " + UiUtils.formatDate(food.expiryDate));
+        }
         tvExpiry.setTextColor(requireContext().getColor(food.isUrgent() ? R.color.red : R.color.green_dark));
 
         LinearProgressIndicator progress = v.findViewById(R.id.progress);

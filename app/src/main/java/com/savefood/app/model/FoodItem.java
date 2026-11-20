@@ -48,25 +48,38 @@ public class FoodItem {
         return Math.floorDiv(getRemainMinutes(), 24L * 60);
     }
 
+    /** 만료 시각(유통기한 날 자정)이 지났는지 */
+    public boolean isExpired() {
+        return getRemainMinutes() < 0;
+    }
+
+    /** 목록 배지: 기한이 지나면 "유통기한 지남" */
     public String getDDayLabel() {
-        long d = getDDay();
-        if (d < 0) return "D+" + (-d);
-        return "D-" + d;
+        if (isExpired()) return "유통기한 지남";
+        return "D-" + getDDay();
     }
 
     public String getRemainText() {
         long minutes = getRemainMinutes();
 
-        if (minutes < 0) {   // 기한 지남 → 지난 시간 표시
-            long over = -minutes;
-            return (over / 60) + "시간 " + (over % 60) + "분 지남";
-        }
+        if (minutes < 0) return "유통기한 지남";
         if (minutes <= 24 * 60) {   // 24시간 이하 → 시간·분으로 표시
             return (minutes / 60) + "시간 " + (minutes % 60) + "분 남음";
         }
         return getDDay() + "일 남음";
     }
+    /** 만료 시각 표시용. 예: "2026.11.17 24:00" (= 11/18 00:00) */
+    public String getExpiredAtText() {
+        return String.format("%d.%02d.%02d 24:00",
+                expiryDate.getYear(), expiryDate.getMonthValue(), expiryDate.getDayOfMonth());
+    }
 
+    /** 만료된 지 얼마나 지났는지. 24시간 미만이면 "5시간 20분 전", 이상이면 "2일 3시간 전" */
+    public String getExpiredAgoText() {
+        long over = Math.max(0, -getRemainMinutes());
+        if (over < 24 * 60) return (over / 60) + "시간 " + (over % 60) + "분 전";
+        return (over / (24 * 60)) + "일 " + (over % (24 * 60) / 60) + "시간 전";
+    }
     public boolean isUrgent() {
         return getDDay() <= 1;
     }
