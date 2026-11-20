@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.savefood.app.R;
 import com.savefood.app.model.FoodItem;
+import com.savefood.app.util.FoodIcons;
 import com.savefood.app.util.UiUtils;
 
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         FoodItem item = items.get(position);
-        h.emoji.setText(item.emoji);
+        FoodIcons.show(h.emoji, item.name, item.emoji);   // 이름으로 대표 식재료 아이콘(두부·닭·소 등)
         h.name.setText(item.name);
         h.location.setText(item.location);
         h.badge.setText(item.getDDayLabel());

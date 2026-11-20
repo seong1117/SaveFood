@@ -9,6 +9,8 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
@@ -16,7 +18,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +52,7 @@ import com.savefood.app.MainActivity;
 import com.savefood.app.R;
 import com.savefood.app.data.FoodRepository;
 import com.savefood.app.model.FoodItem;
+import com.savefood.app.util.FoodIcons;
 import com.savefood.app.util.UiUtils;
 
 import java.time.LocalDate;
@@ -70,6 +77,8 @@ import java.util.UUID;
 public class ScanFragment extends Fragment {
 
     private static final String TAG = "ScanFragment";
+    /** 가격표·포장지 품명 후보 칩 최대 개수(잘린 이름을 채운 후보 포함) */
+    private static final int MAX_NAME_CHOICES = 5;
 
     private enum Mode { FOOD, PRICE_TAG, RECEIPT, EXPIRY }
 
@@ -343,7 +352,7 @@ public class ScanFragment extends Fragment {
     private void setupQuickChips() {
         for (FoodCatalog.Entry e : FoodCatalog.all()) {
             Chip chip = new Chip(requireContext());
-            chip.setText(e.emoji + " " + e.name);
+            FoodIcons.chip(chip, e.name, e.name);
             chip.setCheckable(true);
             chip.setOnClickListener(v -> applyFood(e.name));
             chipsQuick.addView(chip);
@@ -352,17 +361,16 @@ public class ScanFragment extends Fragment {
 
     private void showCandidates(List<FoodClassifier.Guess> guesses) {
         if (!isAdded()) return;
-        List<String> names = new ArrayList<>(), labels = new ArrayList<>();
+        List<String> names = new ArrayList<>(), notes = new ArrayList<>();
         for (FoodClassifier.Guess g : guesses) {
             names.add(g.name);
-            labels.add(String.format(Locale.KOREA, "%s %s %.0f%%",
-                    FoodCatalog.emojiFor(g.name), g.name, g.confidence * 100));
+            notes.add(String.format(Locale.KOREA, "%.0f%%", g.confidence * 100));
         }
-        showChoices(names, labels, "식재료를 알아보지 못했어요. 직접 입력해 주세요");
+        showChoices(names, notes, "식재료를 알아보지 못했어요. 직접 입력해 주세요");
     }
 
-    /** 후보를 칩으로 보여 주고 첫 번째를 바로 채운다. 칩을 누르면 그 후보로 바꾼다. */
-    private void showChoices(List<String> names, List<String> labels, String emptyMessage) {
+    /** 후보를 칩으로 보여 주고 첫 번째를 바로 채운다. 칩을 누르면 그 후보로 바꾼다. notes 는 이름 뒤에 붙일 말(없으면 null). */
+    private void showChoices(List<String> names, @Nullable List<String> notes, String emptyMessage) {
         chipsCandidates.removeAllViews();
         if (names.isEmpty()) {
             chipsCandidates.setVisibility(View.GONE);
@@ -372,7 +380,7 @@ public class ScanFragment extends Fragment {
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
             Chip chip = new Chip(requireContext());
-            chip.setText(labels.get(i));
+            FoodIcons.chip(chip, name, notes == null ? name : name + " " + notes.get(i));
             chip.setCheckable(true);
             chip.setOnClickListener(v -> applyFood(name));
             chipsCandidates.addView(chip);
@@ -398,10 +406,9 @@ public class ScanFragment extends Fragment {
     private void applyPriceTag(Text text) {
         if (!isAdded()) return;
         Log.d(TAG, "가격표 OCR 원문:\n" + text.getText());   // 파서 보정용 샘플
-        List<String> names = PriceTagParser.names(toPieces(text));
-        List<String> labels = new ArrayList<>();
-        for (String n : names) labels.add(FoodCatalog.emojiFor(n) + " " + n);
-        showChoices(names, labels, "품명을 찾지 못했어요. 가격표를 가까이서 다시 찍어 주세요");
+        // 가격표는 긴 품명을 잘라 인쇄하기도 한다. 잘린 끝을 사전 낱말로 채운 후보를 같이 보여 준다
+        List<String> names = FoodCatalog.withCompletions(PriceTagParser.names(toPieces(text)), MAX_NAME_CHOICES);
+        showChoices(names, null, "품명을 찾지 못했어요. 가격표를 가까이서 다시 찍어 주세요");
     }
 
     /** ML Kit 결과를 줄 단위 조각(글자 + 위치)으로 바꾼다. */
@@ -451,10 +458,8 @@ public class ScanFragment extends Fragment {
     /** ② 포장지 제품명. 가격표처럼 큰 글자를 품명 후보로 본다. 기한은 ①에서 읽은 그대로 둔다. */
     private void applyExpiryName(Text text) {
         Log.d(TAG, "식품명 OCR 원문:\n" + text.getText());   // 파서 보정용 샘플
-        List<String> names = PriceTagParser.names(toPieces(text));
-        List<String> labels = new ArrayList<>();
-        for (String n : names) labels.add(FoodCatalog.emojiFor(n) + " " + n);
-        showChoices(names, labels, "이름을 찾지 못했어요. 다시 찍거나 직접 입력해 주세요");
+        List<String> names = FoodCatalog.withCompletions(PriceTagParser.names(toPieces(text)), MAX_NAME_CHOICES);
+        showChoices(names, null, "이름을 찾지 못했어요. 다시 찍거나 직접 입력해 주세요");
     }
 
     private void setExpiryStep(ExpiryStep step) {
@@ -516,30 +521,85 @@ public class ScanFragment extends Fragment {
         showReceiptDialog(result);
     }
 
+    /**
+     * 영수증 품목 확인 창. 품목마다 체크·이름(고칠 수 있음)·수량을 보여 준다.
+     * 영수증은 긴 품명을 칸 길이에서 잘라 인쇄하므로("갓잡은싱싱한고등어" → "갓잡은싱싱한고"),
+     * 끝이 잘린 이름은 사전 낱말로 채우거나(확실할 때) 채울 낱말을 칩으로 고르게 한다.
+     */
     private void showReceiptDialog(ReceiptParser.Result result) {
         List<ReceiptParser.Item> items = result.items;
-        String[] labels = new String[items.size()];
-        boolean[] checked = new boolean[items.size()];
-        for (int i = 0; i < items.size(); i++) {
-            labels[i] = FoodCatalog.emojiFor(items.get(i).name) + " " + items.get(i);
-            checked[i] = true;
+        Context ctx = requireContext();
+        LinearLayout list = new LinearLayout(ctx);
+        list.setOrientation(LinearLayout.VERTICAL);
+        int pad = UiUtils.dp(ctx, 16);
+        list.setPadding(pad, UiUtils.dp(ctx, 8), pad, 0);
+        List<CheckBox> checks = new ArrayList<>();
+        List<EditText> names = new ArrayList<>();
+        LayoutInflater inflater = LayoutInflater.from(ctx);
+        for (ReceiptParser.Item item : items) {
+            View row = inflater.inflate(R.layout.item_receipt_row, list, false);
+            bindReceiptRow(row, item);
+            checks.add(row.findViewById(R.id.cb_use));
+            names.add(row.findViewById(R.id.et_name));
+            list.addView(row);
         }
-        new MaterialAlertDialogBuilder(requireContext())
+        ScrollView scroll = new ScrollView(ctx);
+        scroll.addView(list);
+
+        new MaterialAlertDialogBuilder(ctx)
                 .setTitle("영수증에서 찾은 품목 (추정)")
-                .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                .setView(scroll)
                 .setNegativeButton("취소", null)
                 .setPositiveButton("등록", (d, w) -> {
                     LocalDate bought = result.date != null ? result.date : LocalDate.now();
                     int count = 0;
                     for (int i = 0; i < items.size(); i++) {
-                        if (!checked[i]) continue;
-                        addFood(items.get(i).name, items.get(i).quantity, bought, null, null);
+                        String name = String.valueOf(names.get(i).getText()).trim();
+                        if (!checks.get(i).isChecked() || name.isEmpty()) continue;
+                        addFood(name, items.get(i).quantity, bought, null, null);
                         count++;
                     }
                     toast(count + "개 품목을 냉장고에 등록했어요");
                     if (count > 0) ((MainActivity) requireActivity()).switchTab(R.id.nav_home);
                 })
                 .show();
+    }
+
+    /** 영수증 한 줄. 이름을 고치면 아이콘도 바로 바뀐다. */
+    private void bindReceiptRow(View row, ReceiptParser.Item item) {
+        TextView icon = row.findViewById(R.id.tv_emoji);
+        EditText et = row.findViewById(R.id.et_name);
+        TextView fixHint = row.findViewById(R.id.tv_fix);
+        ChipGroup fixChips = row.findViewById(R.id.chips_fix);
+        ((TextView) row.findViewById(R.id.tv_qty)).setText("× " + item.quantity);
+
+        List<FoodCatalog.Completion> fixes = FoodCatalog.completions(item.name);
+        boolean sure = fixes.size() == 1 && fixes.get(0).sure;
+        et.setText(sure ? fixes.get(0).name : item.name);
+        FoodIcons.show(icon, String.valueOf(et.getText()), null);
+        et.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable s) { FoodIcons.show(icon, s.toString(), null); }
+        });
+
+        if (sure) {
+            fixHint.setText("잘린 이름을 채웠어요 (영수증: " + item.name + ")");
+            fixHint.setVisibility(View.VISIBLE);
+        } else if (!fixes.isEmpty()) {
+            fixHint.setText("이름 끝이 잘렸나요? 맞는 걸 누르면 채워요");
+            fixHint.setVisibility(View.VISIBLE);
+            for (FoodCatalog.Completion c : fixes) {
+                Chip chip = new Chip(requireContext());
+                FoodIcons.chip(chip, c.word, c.word);
+                chip.setOnClickListener(v -> {
+                    et.setText(c.name);
+                    et.setSelection(et.length());
+                });
+                fixChips.addView(chip);
+            }
+            fixChips.setVisibility(View.VISIBLE);
+        }
     }
 
     private void showResult(String text) {

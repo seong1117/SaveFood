@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 두부 아이콘: 이모지에 두부가 없어 직접 그린다. 흰 두부 덩어리 + 작은 구멍 + 회색 테두리(닭 이모지 테두리와 비슷하게) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 윗면, 왼쪽 면, 오른쪽 면 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,8.6L12,4.2L22,8.6L12,13Z" />
+    <path
+        android:fillColor="#F0EDE3"
+        android:pathData="M2,8.6L12,13L12,19.8L2,15.4Z" />
+    <path
+        android:fillColor="#DEDAC9"
+        android:pathData="M12,13L22,8.6L22,15.4L12,19.8Z" />
+
+    <!-- 윗면의 작은 구멍 -->
+    <path
+        android:fillColor="#ECE8DC"
+        android:pathData="M8.75,8.2a0.45,0.27 0,1 0,0.9 0a0.45,0.27 0,1 0,-0.9 0Z
+            M12.15,7a0.45,0.27 0,1 0,0.9 0a0.45,0.27 0,1 0,-0.9 0Z
+            M13.95,9.6a0.45,0.27 0,1 0,0.9 0a0.45,0.27 0,1 0,-0.9 0Z
+            M10.35,10.4a0.45,0.27 0,1 0,0.9 0a0.45,0.27 0,1 0,-0.9 0Z" />
+
+    <!-- 면 사이 모서리, 바깥 테두리 -->
+    <path
+        android:pathData="M2,8.6L12,13L22,8.6M12,13L12,19.8"
+        android:strokeWidth="0.6"
+        android:strokeColor="#C9C4B4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M2,8.6L12,4.2L22,8.6L22,15.4L12,19.8L2,15.4Z"
+        android:strokeWidth="1"
+        android:strokeColor="#9E9E9E"
+        android:strokeLineJoin="round" />
+</vector>

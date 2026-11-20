@@ -17,6 +17,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.savefood.app.R;
 import com.savefood.app.data.FoodRepository;
 import com.savefood.app.model.FoodItem;
+import com.savefood.app.util.FoodIcons;
 import com.savefood.app.util.UiUtils;
 
 import java.time.LocalDate;
@@ -57,7 +58,7 @@ public class FoodMenuBottomSheet extends BottomSheetDialogFragment {
         if (food == null) { dismiss(); return; }
         Listener listener = getParentFragment() instanceof Listener ? (Listener) getParentFragment() : null;
 
-        ((TextView) v.findViewById(R.id.tv_emoji)).setText(food.emoji);
+        FoodIcons.show(v.findViewById(R.id.tv_emoji), food.name, food.emoji);
         ((TextView) v.findViewById(R.id.tv_name)).setText(food.name);
         ((TextView) v.findViewById(R.id.tv_location)).setText(food.location);
         TextView badge = v.findViewById(R.id.tv_badge);

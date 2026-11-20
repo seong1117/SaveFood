@@ -31,10 +31,10 @@ app/src/main/java/com/savefood/app/
 ├─ data/      FoodRepository  ← 지금은 더미 데이터. Firestore 로 교체할 곳
 ├─ ui/home/   HomeFragment, FoodMenuBottomSheet, LeftoverBottomSheet, 어댑터
 ├─ ui/scan/   ScanFragment(식재료 사진·가격표·영수증·소비기한 + 등록 폼), CameraController(CameraX),
-│             FoodClassifier(식재료 분류), PriceTagParser(가격표 품명), ReceiptParser(영수증 파싱), ExpiryDateParser(포장지 기한 → YYYY-MM-DD), FoodCatalog(품목 기본값)
+│             FoodClassifier(식재료 분류), PriceTagParser(가격표 품명), ReceiptParser(영수증 파싱), ExpiryDateParser(포장지 기한 → YYYY-MM-DD), FoodCatalog(대표 식재료 사전·아이콘·잘린 품명 채우기)
 ├─ ui/recipe/ RecipeFragment, RecipeDetailActivity
 ├─ ui/settings/ SettingsFragment (계정·로그아웃)
-├─ util/      UiUtils
+├─ util/      UiUtils, FoodIcons(식재료 아이콘)
 └─ MainActivity (하단 탭 4개)
 ```
 

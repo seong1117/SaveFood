@@ -47,10 +47,10 @@ app/src/main/java/com/savefood/app/
 │                          FoodClassifier(식재료 사진 분류, assets/food_model.tflite + food_labels.txt),
 │                          PriceTagParser(진열대 가격표 OCR → 큰 글자 품명 후보, 나뉜 줄 잇기·잡음 기호 제거), OcrPiece(OCR 줄 조각),
 │                          ExpiryDateParser(포장지·라벨 OCR → 소비기한 후보, 여러 날짜 표기를 YYYY-MM-DD로, 단위 테스트 있음),
-│                          ReceiptParser(영수증 OCR → 품명·수량·구매일, 단위 테스트 있음), FoodCatalog(품목별 이모지·보관 장소·기본 일수)
+│                          ReceiptParser(영수증 OCR → 품명·수량·구매일, 단위 테스트 있음), FoodCatalog(대표 식재료 사전: 이름 낱말 → 아이콘·보관 장소·기본 일수, 잘린 품명 채우기, 단위 테스트 있음)
 ├─ ui/recipe/              RecipeFragment, RecipeAdapter, RecipeDetailActivity
 ├─ ui/settings/            SettingsFragment(계정 표시, 로그아웃)
-└─ util/UiUtils
+└─ util/UiUtils, FoodIcons(이름으로 식재료 아이콘 표시, 두부는 그림 ic_food_tofu)
 ```
 
 ## 5. 화면 흐름과 설계 결정 (Figma 기준)
